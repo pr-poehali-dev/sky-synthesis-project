@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Get all catalog items",
+      "method": "GET",
+      "path": "/?category=all",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Filter by mods",
+      "method": "GET",
+      "path": "/?category=mods",
+      "expectedStatus": 200
+    }
+  ]
+}

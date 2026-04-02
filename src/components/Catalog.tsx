@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 type Category = "all" | "maps" | "mods" | "textures";
@@ -9,73 +9,10 @@ interface CatalogItem {
   description: string;
   category: "maps" | "mods" | "textures";
   image: string;
-  downloads: string;
+  downloads: number;
   rating: number;
   tag: string;
 }
-
-const items: CatalogItem[] = [
-  {
-    id: 1,
-    title: "Остров выживания",
-    description: "Огромный остров с джунглями, водопадами и секретными данжами. Начни с нуля и покори каждый уголок.",
-    category: "maps",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/b05f14c5-3a29-402a-8ca6-80ffe93791de.jpg",
-    downloads: "48K",
-    rating: 5,
-    tag: "Выживание",
-  },
-  {
-    id: 2,
-    title: "Паркур Нeon Rush",
-    description: "120 уровней паркура на неоновых платформах. Каждый уровень сложнее предыдущего.",
-    category: "maps",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/e81ae412-9fba-4ea8-a2a1-b238e136ec45.jpg",
-    downloads: "31K",
-    rating: 4,
-    tag: "Паркур",
-  },
-  {
-    id: 3,
-    title: "Ultimate Weapons",
-    description: "Добавляет 40+ новых видов оружия: зачарованные мечи, боевые топоры и луки с особыми эффектами.",
-    category: "mods",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/c25774c8-087d-4107-adf6-771983b38fad.jpg",
-    downloads: "92K",
-    rating: 5,
-    tag: "Оружие",
-  },
-  {
-    id: 4,
-    title: "Dragon Invasion",
-    description: "Мод добавляет дракона Края в обычный мир. Новый босс, броня дракона и эпические битвы.",
-    category: "mods",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/a9903bb7-c95e-45a7-ae0e-cb44d0a0e133.jpg",
-    downloads: "67K",
-    rating: 5,
-    tag: "Боссы",
-  },
-  {
-    id: 5,
-    title: "Подземелье теней",
-    description: "Лабиринт из 30 комнат с ловушками, загадками и финальным боссом. Найди артефакт и выберись.",
-    category: "maps",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/83c54897-4a91-435f-8ed0-b1fbd90be597.jpg",
-    downloads: "25K",
-    rating: 4,
-    tag: "Данж",
-  },
-  {
-    id: 6,
-    title: "Pixel Fantasy Pack",
-    description: "Пакет текстур в стиле фэнтези: магические блоки, светящиеся руды и переработанный интерфейс.",
-    category: "textures",
-    image: "https://cdn.poehali.dev/projects/b8f90900-54d6-43ed-95ca-030774b3eb05/files/36b15b5c-c175-4d19-b3c5-7c2872c043a7.jpg",
-    downloads: "19K",
-    rating: 4,
-    tag: "Текстуры",
-  },
-];
 
 const categories: { value: Category; label: string }[] = [
   { value: "all", label: "Все" },
@@ -84,10 +21,28 @@ const categories: { value: Category; label: string }[] = [
   { value: "textures", label: "Текстуры" },
 ];
 
+const API_URL = "https://functions.poehali.dev/ecafd94e-ca6d-4d9d-9c15-048c1086ce45";
+
+function formatDownloads(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+  return String(n);
+}
+
 export default function Catalog() {
   const [active, setActive] = useState<Category>("all");
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = active === "all" ? items : items.filter((i) => i.category === active);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_URL}?category=${active}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const parsed = typeof data === "string" ? JSON.parse(data) : data;
+        setItems(parsed.items || []);
+      })
+      .finally(() => setLoading(false));
+  }, [active]);
 
   return (
     <section id="catalog" className="bg-neutral-950 py-20 px-6">
@@ -115,47 +70,62 @@ export default function Catalog() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((item) => (
-            <div
-              key={item.id}
-              className="bg-neutral-900 border border-neutral-800 hover:border-green-500 transition-colors duration-300 group"
-            >
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 uppercase tracking-wide">
-                  {item.tag}
-                </span>
-              </div>
-
-              <div className="p-5">
-                <h3 className="text-white font-bold text-lg mb-2">{item.title}</h3>
-                <p className="text-neutral-400 text-sm leading-relaxed mb-4">{item.description}</p>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-neutral-500 text-sm">
-                    <span className="flex items-center gap-1">
-                      <Icon name="Download" size={14} />
-                      {item.downloads}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Icon name="Star" size={14} className="text-yellow-400 fill-yellow-400" />
-                      {item.rating}.0
-                    </span>
-                  </div>
-                  <button className="bg-green-500 hover:bg-green-400 text-white text-xs px-4 py-2 uppercase tracking-wide transition-colors duration-200 flex items-center gap-1">
-                    <Icon name="Download" size={12} />
-                    Скачать
-                  </button>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-neutral-900 border border-neutral-800 animate-pulse">
+                <div className="h-48 bg-neutral-800" />
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-neutral-800 rounded w-3/4" />
+                  <div className="h-4 bg-neutral-800 rounded w-full" />
+                  <div className="h-4 bg-neutral-800 rounded w-2/3" />
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="bg-neutral-900 border border-neutral-800 hover:border-green-500 transition-colors duration-300 group"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <span className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 uppercase tracking-wide">
+                    {item.tag}
+                  </span>
+                </div>
+
+                <div className="p-5">
+                  <h3 className="text-white font-bold text-lg mb-2">{item.title}</h3>
+                  <p className="text-neutral-400 text-sm leading-relaxed mb-4">{item.description}</p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-neutral-500 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Icon name="Download" size={14} />
+                        {formatDownloads(item.downloads)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icon name="Star" size={14} className="text-yellow-400 fill-yellow-400" />
+                        {item.rating.toFixed(1)}
+                      </span>
+                    </div>
+                    <button className="bg-green-500 hover:bg-green-400 text-white text-xs px-4 py-2 uppercase tracking-wide transition-colors duration-200 flex items-center gap-1">
+                      <Icon name="Download" size={12} />
+                      Скачать
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
