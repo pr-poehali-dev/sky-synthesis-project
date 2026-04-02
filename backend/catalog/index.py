@@ -25,12 +25,12 @@ def handler(event: dict, context) -> dict:
 
     if category and category != 'all':
         cur.execute(
-            "SELECT id, title, description, category, image, downloads, rating, tag FROM catalog_items WHERE category = %s ORDER BY downloads DESC",
+            "SELECT id, title, description, category, image, downloads, rating, tag, file_url FROM catalog_items WHERE category = %s ORDER BY downloads DESC",
             (category,)
         )
     else:
         cur.execute(
-            "SELECT id, title, description, category, image, downloads, rating, tag FROM catalog_items ORDER BY downloads DESC"
+            "SELECT id, title, description, category, image, downloads, rating, tag, file_url FROM catalog_items ORDER BY downloads DESC"
         )
 
     rows = cur.fetchall()
@@ -47,6 +47,7 @@ def handler(event: dict, context) -> dict:
             'downloads': row[5],
             'rating': float(row[6]),
             'tag': row[7],
+            'file_url': row[8],
         }
         for row in rows
     ]

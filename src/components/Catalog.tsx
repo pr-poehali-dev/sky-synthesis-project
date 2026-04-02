@@ -12,6 +12,7 @@ interface CatalogItem {
   downloads: number;
   rating: number;
   tag: string;
+  file_url: string | null;
 }
 
 const categories: { value: Category; label: string }[] = [
@@ -116,10 +117,21 @@ export default function Catalog() {
                         {item.rating.toFixed(1)}
                       </span>
                     </div>
-                    <button className="bg-green-500 hover:bg-green-400 text-white text-xs px-4 py-2 uppercase tracking-wide transition-colors duration-200 flex items-center gap-1">
-                      <Icon name="Download" size={12} />
-                      Скачать
-                    </button>
+                    {item.file_url ? (
+                      <a
+                        href={item.file_url}
+                        download
+                        className="bg-green-500 hover:bg-green-400 text-white text-xs px-4 py-2 uppercase tracking-wide transition-colors duration-200 flex items-center gap-1"
+                      >
+                        <Icon name="Download" size={12} />
+                        Скачать
+                      </a>
+                    ) : (
+                      <button disabled className="bg-neutral-700 text-neutral-500 text-xs px-4 py-2 uppercase tracking-wide flex items-center gap-1 cursor-not-allowed">
+                        <Icon name="Download" size={12} />
+                        Скачать
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

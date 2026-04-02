@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
 const ADMIN_API = "https://functions.poehali.dev/2b62ab7b-b40b-4151-91dd-fc7af1505ca1";
-const UPLOAD_API = "https://functions.poehali.dev/1e0228d1-1e3c-4f71-a099-6e6d163bc813";
+const UPLOAD_IMAGE_API = "https://functions.poehali.dev/1e0228d1-1e3c-4f71-a099-6e6d163bc813";
+const UPLOAD_FILE_API = "https://functions.poehali.dev/f2bea509-7ca4-4022-b57e-42a619711797";
 
 interface CatalogItem {
   id: number;
@@ -13,6 +14,7 @@ interface CatalogItem {
   downloads: number;
   rating: number;
   tag: string;
+  file_url: string | null;
 }
 
 const emptyForm = {
@@ -23,6 +25,7 @@ const emptyForm = {
   tag: "",
   downloads: "0",
   rating: "5",
+  file_url: "",
 };
 
 function ImageUploader({ token, value, onChange }: { token: string; value: string; onChange: (url: string) => void }) {
@@ -35,7 +38,7 @@ function ImageUploader({ token, value, onChange }: { token: string; value: strin
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64 = e.target?.result as string;
-      const res = await fetch(UPLOAD_API, {
+      const res = await fetch(UPLOAD_IMAGE_API, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Admin-Token": token },
         body: JSON.stringify({ file: base64, filename: file.name }),
@@ -92,6 +95,74 @@ function ImageUploader({ token, value, onChange }: { token: string; value: strin
   );
 }
 
+function FileUploader({ token, value, onChange }: { token: string; value: string; onChange: (url: string, name: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [fileName, setFileName] = useState(value ? value.split('/').pop() || "" : "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const res = await fetch(UPLOAD_FILE_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Token": token },
+        body: JSON.stringify({ file: base64, filename: file.name }),
+      });
+      const data = await res.json();
+      const parsed = typeof data === "string" ? JSON.parse(data) : data;
+      setFileName(file.name);
+      onChange(parsed.url, file.name);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  return (
+    <div className="md:col-span-2">
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        className="border-2 border-dashed border-neutral-700 hover:border-blue-500 transition-colors cursor-pointer flex items-center gap-4 p-4"
+      >
+        <div className="w-14 h-14 bg-neutral-800 flex items-center justify-center shrink-0">
+          <Icon name={fileName ? "FileCheck" : "FileUp"} size={24} className={fileName ? "text-blue-400" : "text-neutral-600"} />
+        </div>
+        <div className="text-neutral-400 text-sm min-w-0">
+          {uploading ? (
+            <span className="text-blue-400">Загрузка файла...</span>
+          ) : fileName ? (
+            <>
+              <p className="text-white mb-1 truncate">{fileName}</p>
+              <p className="text-neutral-500">Нажми чтобы заменить файл</p>
+            </>
+          ) : (
+            <>
+              <p className="text-white mb-1">Нажми или перетащи файл мода/карты</p>
+              <p>.mcworld, .mcpack, .zip и другие форматы</p>
+            </>
+          )}
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".mcworld,.mcpack,.zip,.rar,.mcaddon,.apk"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+    </div>
+  );
+}
+
 export default function Admin() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -130,6 +201,7 @@ export default function Admin() {
         ...form,
         downloads: Number(form.downloads),
         rating: Number(form.rating),
+        file_url: form.file_url || null,
       }),
     });
     setForm(emptyForm);
@@ -192,6 +264,11 @@ export default function Admin() {
               token={token}
               value={form.image}
               onChange={(url) => setForm({ ...form, image: url })}
+            />
+            <FileUploader
+              token={token}
+              value={form.file_url}
+              onChange={(url) => setForm({ ...form, file_url: url })}
             />
             <input
               placeholder="Название"
@@ -264,6 +341,22 @@ export default function Admin() {
                   <span className="text-neutral-500 text-xs shrink-0 capitalize">{item.category}</span>
                 </div>
                 <p className="text-neutral-400 text-sm truncate">{item.description}</p>
+                {item.file_url ? (
+                  <a
+                    href={item.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs mt-1 transition-colors"
+                  >
+                    <Icon name="FileDown" size={12} />
+                    Файл загружен
+                  </a>
+                ) : (
+                  <span className="text-neutral-600 text-xs mt-1 flex items-center gap-1">
+                    <Icon name="FileX" size={12} />
+                    Файл не прикреплён
+                  </span>
+                )}
               </div>
               <div className="text-neutral-500 text-sm shrink-0 text-right mr-4">
                 <div>{item.downloads.toLocaleString()} скач.</div>

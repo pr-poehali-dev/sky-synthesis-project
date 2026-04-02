@@ -1,0 +1,1 @@
+ALTER TABLE catalog_items ADD COLUMN file_url TEXT DEFAULT NULL;
