@@ -81,7 +81,7 @@ export default function Admin() {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center px-4">
         <div className="bg-neutral-900 border border-neutral-800 p-8 w-full max-w-sm">
-          <div className="text-green-500 uppercase text-xs tracking-widest mb-6">MCPocket Admin</div>
+          <div className="text-green-500 uppercase text-xs tracking-widest mb-6">Kayos Team Admin</div>
           <h1 className="text-white text-2xl font-bold mb-6">Вход</h1>
           <input
             type="password"
@@ -110,7 +110,7 @@ export default function Admin() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <p className="text-green-500 uppercase text-xs tracking-widest mb-1">MCPocket</p>
+            <p className="text-green-500 uppercase text-xs tracking-widest mb-1">Kayos Team</p>
             <h1 className="text-white text-3xl font-bold">Управление каталогом</h1>
           </div>
           <a href="/" className="text-neutral-400 hover:text-white text-sm uppercase tracking-wide transition-colors">
