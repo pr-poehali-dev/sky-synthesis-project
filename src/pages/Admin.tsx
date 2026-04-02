@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
 const ADMIN_API = "https://functions.poehali.dev/2b62ab7b-b40b-4151-91dd-fc7af1505ca1";
+const UPLOAD_API = "https://functions.poehali.dev/1e0228d1-1e3c-4f71-a099-6e6d163bc813";
 
 interface CatalogItem {
   id: number;
@@ -23,6 +24,73 @@ const emptyForm = {
   downloads: "0",
   rating: "5",
 };
+
+function ImageUploader({ token, value, onChange }: { token: string; value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const res = await fetch(UPLOAD_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Token": token },
+        body: JSON.stringify({ file: base64, filename: file.name }),
+      });
+      const data = await res.json();
+      const parsed = typeof data === "string" ? JSON.parse(data) : data;
+      setPreview(parsed.url);
+      onChange(parsed.url);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  return (
+    <div className="md:col-span-2">
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        className="border-2 border-dashed border-neutral-700 hover:border-green-500 transition-colors cursor-pointer flex items-center gap-4 p-4"
+      >
+        {preview ? (
+          <img src={preview} alt="preview" className="w-24 h-24 object-cover shrink-0" />
+        ) : (
+          <div className="w-24 h-24 bg-neutral-800 flex items-center justify-center shrink-0">
+            <Icon name="Image" size={28} className="text-neutral-600" />
+          </div>
+        )}
+        <div className="text-neutral-400 text-sm">
+          {uploading ? (
+            <span className="text-green-400">Загрузка...</span>
+          ) : (
+            <>
+              <p className="text-white mb-1">{preview ? "Нажми чтобы сменить" : "Нажми или перетащи картинку"}</p>
+              <p>JPG, PNG, WEBP — до 5 МБ</p>
+            </>
+          )}
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+    </div>
+  );
+}
 
 export default function Admin() {
   const [password, setPassword] = useState("");
@@ -91,9 +159,7 @@ export default function Admin() {
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 mb-3 focus:outline-none focus:border-green-500"
           />
-          {authError && (
-            <p className="text-red-400 text-sm mb-3">Неверный пароль</p>
-          )}
+          {authError && <p className="text-red-400 text-sm mb-3">Неверный пароль</p>}
           <button
             onClick={handleLogin}
             className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3 uppercase tracking-wide transition-colors"
@@ -122,6 +188,11 @@ export default function Admin() {
         <div className="bg-neutral-900 border border-neutral-800 p-6 mb-10">
           <h2 className="text-white font-bold text-lg mb-5 uppercase tracking-wide">Добавить новый элемент</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <ImageUploader
+              token={token}
+              value={form.image}
+              onChange={(url) => setForm({ ...form, image: url })}
+            />
             <input
               placeholder="Название"
               value={form.title}
@@ -143,12 +214,6 @@ export default function Admin() {
               <option value="mods">Моды</option>
               <option value="textures">Текстуры</option>
             </select>
-            <input
-              placeholder="Ссылка на изображение"
-              value={form.image}
-              onChange={(e) => setForm({ ...form, image: e.target.value })}
-              className="bg-neutral-800 border border-neutral-700 text-white px-4 py-3 focus:outline-none focus:border-green-500 placeholder-neutral-500"
-            />
             <input
               placeholder="Скачиваний (число)"
               type="number"
@@ -176,7 +241,7 @@ export default function Admin() {
           />
           <button
             onClick={handleAdd}
-            disabled={saving || !form.title || !form.description}
+            disabled={saving || !form.title || !form.description || !form.image}
             className="bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white font-bold px-8 py-3 uppercase tracking-wide transition-colors flex items-center gap-2"
           >
             <Icon name="Plus" size={16} />
@@ -190,15 +255,8 @@ export default function Admin() {
         </h2>
         <div className="space-y-3">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-neutral-900 border border-neutral-800 p-4 flex items-center gap-4"
-            >
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-16 h-16 object-cover shrink-0"
-              />
+            <div key={item.id} className="bg-neutral-900 border border-neutral-800 p-4 flex items-center gap-4">
+              <img src={item.image} alt={item.title} className="w-16 h-16 object-cover shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-white font-bold truncate">{item.title}</span>

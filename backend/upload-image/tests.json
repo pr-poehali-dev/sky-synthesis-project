@@ -1,8 +1,8 @@
 {
   "tests": [
     {
-      "name": "Unauthorized request",
-      "method": "GET",
+      "name": "Unauthorized upload",
+      "method": "POST",
       "path": "/",
       "expectedStatus": 401
     }
